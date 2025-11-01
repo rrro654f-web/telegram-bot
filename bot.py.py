@@ -1,8 +1,7 @@
 import logging
-import asyncio
-import signal
+import os
 import sys
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo, MenuButtonWebApp
 from telegram.ext import Application, CommandHandler, CallbackContext, MessageHandler, filters
 
 # Настройка логирования
@@ -10,13 +9,16 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     level=logging.INFO,
     handlers=[
-        logging.FileHandler('bot.log', encoding='utf-8'),
         logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = "8224695958:AAHC8om367qRdSACmyUmFKrtJ3JKIik35Ec"
+# Токен берется из переменных окружения
+BOT_TOKEN = os.getenv('BOT_TOKEN')
+if not BOT_TOKEN:
+    logger.error("❌ BOT_TOKEN не знайдено в змінних середовища!")
+    sys.exit(1)
 
 # Текст для описания бота (будет показан при запуске)
 BOT_DESCRIPTION = """Ласкаво просимо до нашого магазину, де ви знайдете тільки найкращу техніку Apple — нову та б/у за вигідними цінами! 😊
@@ -158,11 +160,6 @@ async def error_handler(update: Update, context: CallbackContext) -> None:
     """Обработчик ошибок"""
     logger.error(f"Exception while handling an update: {context.error}")
 
-def signal_handler(signum, frame):
-    """Обработчик сигналов для graceful shutdown"""
-    logger.info(f"Received signal {signum}, shutting down...")
-    sys.exit(0)
-
 async def post_init(application: Application) -> None:
     """Функция, выполняемая после инициализации бота"""
     try:
@@ -185,10 +182,6 @@ async def post_stop(application: Application) -> None:
 
 def main() -> None:
     """Запуск бота"""
-    # Регистрируем обработчики сигналов
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
-    
     try:
         # Создаем и настраиваем приложение
         application = (
@@ -213,8 +206,7 @@ def main() -> None:
         
         application.run_polling(
             drop_pending_updates=True,
-            allowed_updates=Update.ALL_TYPES,
-            close_loop=False
+            allowed_updates=Update.ALL_TYPES
         )
         
     except Exception as e:
